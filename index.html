@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>くらしログ</title>
+<meta name="description" content="読書・映画・勉強・音楽・趣味など、今日は何にどれだけ時間を使ったかを静かに記録するための個人用ログ">
+
+<!-- PWA / iOS home screen -->
+<meta name="theme-color" content="#F3EFE6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E1C19" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="くらしログ">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="screen" id="screen-home" data-screen="home">
+    <header class="home-header safe-top">
+      <p class="today-date" id="todayDateLabel">—</p>
+      <p class="today-total-label">今日の活動時間</p>
+      <p class="today-total" id="todayTotalLabel">0分</p>
+    </header>
+
+    <div class="content">
+      <div class="section-block" id="todayCategoryBlock">
+        <h2 class="block-title">カテゴリ別</h2>
+        <ul class="category-breakdown" id="todayCategoryList"></ul>
+        <p class="empty-hint" id="todayCategoryEmpty">まだ記録がありません</p>
+      </div>
+
+      <div class="section-block">
+        <h2 class="block-title">今日の記録</h2>
+        <ul class="entry-list" id="todayEntryList"></ul>
+        <p class="empty-hint" id="todayEntryEmpty">「＋」から今日のことを記録してみましょう</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ADD / EDIT ================= -->
+  <section class="screen" id="screen-add" data-screen="add">
+    <header class="sub-header safe-top">
+      <button class="text-btn" id="addCancelBtn" type="button">キャンセル</button>
+      <h1 class="sub-header-title" id="addScreenTitle">活動を記録</h1>
+      <span class="header-spacer"></span>
+    </header>
+
+    <form class="content form" id="entryForm">
+      <input type="hidden" id="entryId">
+
+      <div class="field">
+        <label>日付</label>
+        <div class="date-row">
+          <button type="button" class="chip chip-quick" data-date-quick="today">今日</button>
+          <button type="button" class="chip chip-quick" data-date-quick="yesterday">昨日</button>
+          <input type="date" id="entryDate" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>カテゴリ</label>
+        <div class="chip-row" id="categoryChipRow"></div>
+      </div>
+
+      <div class="field">
+        <label>時間（分）</label>
+        <div class="chip-row" id="minutePresetRow">
+          <button type="button" class="chip chip-minute" data-minutes="15">15分</button>
+          <button type="button" class="chip chip-minute" data-minutes="30">30分</button>
+          <button type="button" class="chip chip-minute" data-minutes="45">45分</button>
+          <button type="button" class="chip chip-minute" data-minutes="60">60分</button>
+          <button type="button" class="chip chip-minute" data-minutes="90">90分</button>
+          <button type="button" class="chip chip-minute" data-minutes="120">120分</button>
+        </div>
+        <input type="number" id="entryMinutes" class="minute-input" min="1" max="1440" placeholder="自由に入力（分）" inputmode="numeric">
+      </div>
+
+      <div class="field">
+        <label for="entryTitle">内容・作品名</label>
+        <input type="text" id="entryTitle" placeholder="例）『百年の孤独』／簿記2級 テキスト" maxlength="80">
+      </div>
+
+      <div class="field">
+        <label for="entryMemo">詳細・メモ</label>
+        <textarea id="entryMemo" rows="3" placeholder="例）読了／鑑賞／Chapter 3 完了 など、自由に" maxlength="500"></textarea>
+      </div>
+
+      <button type="submit" class="primary-btn" id="entrySaveBtn">保存する</button>
+      <button type="button" class="danger-text-btn" id="entryDeleteBtn" hidden>この記録を削除する</button>
+    </form>
+  </section>
+
+  <!-- ================= HISTORY ================= -->
+  <section class="screen" id="screen-history" data-screen="history">
+    <header class="sub-header safe-top">
+      <h1 class="sub-header-title">履歴</h1>
+    </header>
+    <div class="content">
+      <div class="chip-row scroll-row" id="periodFilterRow">
+        <button type="button" class="chip chip-period is-active" data-period="today">今日</button>
+        <button type="button" class="chip chip-period" data-period="yesterday">昨日</button>
+        <button type="button" class="chip chip-period" data-period="thisWeek">今週</button>
+        <button type="button" class="chip chip-period" data-period="lastWeek">先週</button>
+        <button type="button" class="chip chip-period" data-period="thisMonth">今月</button>
+        <button type="button" class="chip chip-period" data-period="all">すべて</button>
+      </div>
+      <div class="chip-row scroll-row" id="categoryFilterRow"></div>
+
+      <div id="historyList"></div>
+      <p class="empty-hint" id="historyEmpty">この期間の記録はありません</p>
+    </div>
+  </section>
+
+  <!-- ================= ANALYSIS ================= -->
+  <section class="screen" id="screen-analysis" data-screen="analysis">
+    <header class="sub-header safe-top">
+      <h1 class="sub-header-title">分析</h1>
+      <button class="icon-text-btn" id="settingsBtn" type="button">設定</button>
+    </header>
+    <div class="content">
+
+      <div class="section-block">
+        <h2 class="block-title">今週</h2>
+        <div class="stat-row">
+          <div class="stat"><span class="stat-value" id="weekTotal">0分</span><span class="stat-label">総活動時間</span></div>
+          <div class="stat"><span class="stat-value" id="weekDays">0日</span><span class="stat-label">活動した日数</span></div>
+          <div class="stat"><span class="stat-value" id="weekAvg">0分</span><span class="stat-label">1日平均</span></div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="block-title">今月</h2>
+        <div class="stat-row">
+          <div class="stat"><span class="stat-value" id="monthTotal">0分</span><span class="stat-label">総活動時間</span></div>
+          <div class="stat"><span class="stat-value" id="monthAvg">0分</span><span class="stat-label">1日平均</span></div>
+          <div class="stat"><span class="stat-value" id="monthTop">—</span><span class="stat-label">最も使ったカテゴリ</span></div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="block-title">日ごとの活動時間（直近14日）</h2>
+        <div class="bar-chart-scroll">
+          <div class="bar-chart" id="dailyChart"></div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="block-title">カテゴリ別の活動時間（今月）</h2>
+        <ul class="hbar-chart" id="categoryChart"></ul>
+        <p class="empty-hint" id="categoryChartEmpty">今月の記録はまだありません</p>
+      </div>
+
+      <div class="section-block">
+        <h2 class="block-title">月ごとの活動時間（直近6か月）</h2>
+        <div class="bar-chart" id="monthlyChart"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS (sheet) ================= -->
+  <div class="sheet-overlay" id="settingsOverlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h2 class="sheet-title">設定</h2>
+
+      <div class="settings-row">
+        <span>表示モード</span>
+        <div class="segmented" id="themeSegmented">
+          <button type="button" data-theme="auto" class="is-active">自動</button>
+          <button type="button" data-theme="light">ライト</button>
+          <button type="button" data-theme="dark">ダーク</button>
+        </div>
+      </div>
+
+      <h3 class="sheet-subtitle">カテゴリ管理</h3>
+      <ul class="category-manage-list" id="categoryManageList"></ul>
+      <button type="button" class="secondary-btn" id="addCategoryBtn">＋ カテゴリを追加</button>
+
+      <h3 class="sheet-subtitle">データ</h3>
+      <button type="button" class="secondary-btn" id="exportBtn">データを書き出す（JSON）</button>
+      <label class="secondary-btn file-label" for="importInput">JSONから復元する</label>
+      <input type="file" id="importInput" accept="application/json" hidden>
+
+      <button type="button" class="text-btn sheet-close" id="settingsCloseBtn">閉じる</button>
+    </div>
+  </div>
+
+  <!-- ================= CATEGORY EDIT (sheet) ================= -->
+  <div class="sheet-overlay" id="categoryEditOverlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h2 class="sheet-title" id="categoryEditTitle">カテゴリを追加</h2>
+
+      <div class="field">
+        <label>絵文字</label>
+        <input type="text" id="categoryEmojiInput" maxlength="4" placeholder="📌">
+      </div>
+      <div class="field">
+        <label>名前</label>
+        <input type="text" id="categoryNameInput" maxlength="12" placeholder="例）語学">
+      </div>
+      <div class="field">
+        <label>色</label>
+        <div class="color-swatch-row" id="colorSwatchRow"></div>
+      </div>
+
+      <button type="button" class="primary-btn" id="categorySaveBtn">保存する</button>
+      <button type="button" class="danger-text-btn" id="categoryDeleteBtn" hidden>このカテゴリを削除する</button>
+      <button type="button" class="text-btn sheet-close" id="categoryEditCloseBtn">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ================= TOAST ================= -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ================= BOTTOM NAV ================= -->
+  <nav class="bottom-nav safe-bottom" id="bottomNav">
+    <button class="nav-btn is-active" data-nav="home" type="button">
+      <span class="nav-icon">🏠</span><span class="nav-label">ホーム</span>
+    </button>
+    <button class="nav-btn" data-nav="history" type="button">
+      <span class="nav-icon">📅</span><span class="nav-label">履歴</span>
+    </button>
+    <button class="nav-fab" id="navAddBtn" type="button" aria-label="活動を記録">＋</button>
+    <button class="nav-btn" data-nav="analysis" type="button">
+      <span class="nav-icon">📊</span><span class="nav-label">分析</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
